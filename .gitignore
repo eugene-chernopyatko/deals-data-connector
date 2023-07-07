@@ -4,3 +4,4 @@ Hook.txt
 New_Connector.bat
 test-python-334320-3a0cd1d02f70.json
 .DS_Store
+__pycache__/Lead_Connector.cpython-311.pyc
