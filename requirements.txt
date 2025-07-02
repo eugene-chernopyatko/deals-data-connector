@@ -1,0 +1,5 @@
+fast-bitrix24
+pandas
+gspread
+python-dotenv
+oauth2client

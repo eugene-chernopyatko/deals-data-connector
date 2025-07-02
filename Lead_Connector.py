@@ -1,20 +1,18 @@
-import datetime
 from fast_bitrix24 import Bitrix
 from pandas import DataFrame
 import pandas
 import gspread
 import os
 from datetime import date, timedelta
+from dotenv import load_dotenv
 
+load_dotenv()
+
+WEBHOOK = str(os.getenv('HOOK'))
+GOOGLE_SHEET_URL = str(os.getenv('SHEET_URL'))
 
 DAY_NOW = date.today()
 YESTERDAY = DAY_NOW - timedelta(days=1)
-
-with open('Hook.txt') as HOOK:
-    WEBHOOK = str(HOOK.read())
-
-with open('Google_Sheet_Url.txt') as Url_file:
-    GOOGLE_SHEET_URL = str(Url_file.readline())
 
 
 def get_bitrix_client():
@@ -59,7 +57,7 @@ class LeadConnector:
         lead_list = self.client.get_all('crm.lead.list',
                                         params={
                                             'filter': {'>DATE_CREATE': f'{year}-01-01T00:00:00'},
-                                            'select': ['*', 'UF_CRM_1623137378375', 'UF_CRM_1623158614433'],
+                                            'select': ['*', 'UF_CRM_1623137378375', 'UF_CRM_1623158614433', 'UF_CRM_1720513682666'],
                                         }
                                         )
         return lead_list
@@ -103,10 +101,6 @@ class LeadConnector:
             self.Utm_term.append(elem.get('UTM_TERM', ''))
             self.Country.append(elem.get('UF_CRM_1623137378375', '')),
             self.lead_service.append(elem.get('UF_CRM_1623158614433', ''))
-
-        # for i in self.Date_create:
-        #     str_to_date = datetime.datetime.strptime(i, "%Y-%m-%d")
-        #     self.new_lead_date_create.append(str_to_date)
 
         for i in self.Date_create:
             splited_date_create = pandas.Timestamp(i.split('T')[0])
@@ -311,7 +305,8 @@ class LeadConnector:
                 'UTM_TERM': elem.get('UTM_TERM', ''),
                 'Country': elem.get('UF_CRM_1623137378375', ''),
                 'Day_of_the_week': self.Day_of_the_week[counter],
-                'Service': self.formated_service[counter]
+                'Service': self.formated_service[counter],
+                'Expats': elem.get('UF_CRM_1720513682666', '')
             }
             counter += 1
 
@@ -352,25 +347,6 @@ class LeadConnector:
                 self.work_dict[deals['LEAD_ID']]['Deals_UTM_CAMPAIGN'] = deals.get('UTM_CAMPAIGN', '')
                 self.work_dict[deals['LEAD_ID']]['Deals_UTM_CONTENT'] = deals.get('UTM_CONTENT', '')
                 self.work_dict[deals['LEAD_ID']]['Deals_UTM_TERM'] = deals.get('UTM_TERM', '')
-                # self.work_dict[deals['LEAD_ID']]['Service'] = deals.get('UF_CRM_60BF763052479', '')
-
-            # for keys in self.work_dict:
-            #     try:
-            #         if self.work_dict[keys]['Service'] in service_dict.keys():
-            #             self.work_dict[keys]['Service'] = service_dict[self.work_dict[keys]['Service']]
-            #     #     if self.work_dict[keys]['Service'] == '86':
-            #     #         self.work_dict[keys]['Service'] = 'mobile'
-            #     # elif keys['Service'] == '90':
-            #     #     keys['Service'] = 'cервiс сайт'
-            #     # elif keys['Service'] == '1713':
-            #     #     keys['Service'] = 'b2b'
-            #     # elif keys['Service'] == '92':
-            #     #     keys['Service'] = 'лендинг'
-            #
-            #     except KeyError:
-            #         pass
-            #     else:
-            #         continue
 
     def create_data_frame(self):
         """Creating Data Frames from Pandas"""
@@ -408,13 +384,11 @@ class LeadConnector:
         worksheet.update([df.columns.values.tolist()] + df.values.tolist())
         print('\nData Updated')
 
-    # noinspection PyTypeChecker
     def upload_data_to_sheet(self):
         """Uploading data from pandas data frames to google sheet"""
         key_p = os.path.abspath('test-python-334320-3a0cd1d02f70.json')
         gc = gspread.service_account(filename=key_p)
         sheet = gc.open_by_url(GOOGLE_SHEET_URL)
         worksheet = sheet.get_worksheet(0)
-        # worksheet.resize(rows=len(self.ID))
         worksheet.update([self.pd.columns.values.tolist()] + self.pd.values.tolist())
         print('\nData Updated')
